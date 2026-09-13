@@ -1,17 +1,15 @@
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
-use std::sync::{Arc};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
 
 /// The maximum number of items that a batch can hold.
 pub const BATCH_CAPACITY: usize = 8192;
 
 type ScanFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
-
 pub struct ScanOutcome {
-    pub errors: Vec<String>
+    pub errors: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -27,12 +25,12 @@ pub enum ScanMessage {
     Image(PathBuf),
 
     /// all images have been scanned, total is the number of images scanned
-    Done {total: usize}
+    Done { total: usize },
 }
 
 pub async fn scan_recursive(
     root: PathBuf,
-    tx: tokio::sync::mpsc::Sender<ScanMessage>
+    tx: tokio::sync::mpsc::Sender<ScanMessage>,
 ) -> ScanOutcome {
     let root_label = root.display().to_string();
 
@@ -45,24 +43,25 @@ pub async fn scan_recursive(
     let result = tokio::spawn(scan_dir(root, context.clone())).await;
 
     if let Err(error) = result {
-        context.errors.lock().unwrap().push(
-            format!("scan task for '{root_label}' failed: {error}")
-        );
+        context
+            .errors
+            .lock()
+            .unwrap()
+            .push(format!("scan task for '{root_label}' failed: {error}"));
     }
 
     let total = context.total.load(Ordering::SeqCst);
     if total > 0 {
-        context.sender.send(ScanMessage::Done {total}).await.ok();
+        context.sender.send(ScanMessage::Done { total }).await.ok();
     }
 
-    ScanOutcome{
+    ScanOutcome {
         errors: Arc::into_inner(context.errors)
             .expect("no other Arc refs alive")
             .into_inner()
-            .unwrap()
+            .unwrap(),
     }
 }
-
 
 fn scan_dir(dir: PathBuf, context: ScanContext) -> ScanFuture {
     Box::pin(async move {
@@ -71,7 +70,7 @@ fn scan_dir(dir: PathBuf, context: ScanContext) -> ScanFuture {
             Err(error) => {
                 record_error(
                     &context,
-                format!("cannot read dir '{}': {error}", dir.display())
+                    format!("cannot read dir '{}': {error}", dir.display()),
                 );
                 return;
             }
@@ -87,7 +86,7 @@ fn scan_dir(dir: PathBuf, context: ScanContext) -> ScanFuture {
                 Err(error) => {
                     record_error(
                         &context,
-                        format!("cannot list '{}': {error}", dir.display())
+                        format!("cannot list '{}': {error}", dir.display()),
                     );
                     break;
                 }
@@ -99,9 +98,9 @@ fn scan_dir(dir: PathBuf, context: ScanContext) -> ScanFuture {
                 Err(error) => {
                     record_error(
                         &context,
-                        format!("cannot inspect '{}': {error}", path.display())
+                        format!("cannot inspect '{}': {error}", path.display()),
                     );
-                    continue
+                    continue;
                 }
             };
 
@@ -158,7 +157,11 @@ async fn wait_for_subdirectories(
         if let Err(error) = task.await {
             record_error(
                 context,
-                format!("scan task for a subdir of '{}' failed: {error}", parent.display()));
+                format!(
+                    "scan task for a subdir of '{}' failed: {error}",
+                    parent.display()
+                ),
+            );
         }
     }
 }
