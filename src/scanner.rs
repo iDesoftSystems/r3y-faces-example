@@ -3,6 +3,10 @@ use std::pin::Pin;
 use std::sync::{Arc};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+
+/// The maximum number of items that a batch can hold.
+pub const BATCH_CAPACITY: usize = 8192;
+
 type ScanFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
 
