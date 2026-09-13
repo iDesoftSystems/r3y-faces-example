@@ -8,3 +8,4 @@ tokio = { version = "1.53.1", features = ["fs", "macros", "net", "rt-multi-threa
 image = "0.24.9"
 imageproc = "0.23.0"
 rustface = { version = "0.1.7", default-features = false }
+indicatif = {version = "0.18.6"}
