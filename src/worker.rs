@@ -1,11 +1,11 @@
-use std::path::PathBuf;
-use std::sync::{mpsc, Arc};
 use crate::detector::build_detector;
-use crate::image_processor::{process_image, ProcessedImage};
+use crate::image_processor::{ProcessedImage, process_image};
+use std::path::PathBuf;
+use std::sync::{Arc, mpsc};
 
 pub struct WorkerResult {
     pub input_path: PathBuf,
-    pub image: ProcessedImage
+    pub image: ProcessedImage,
 }
 
 pub struct WorkerPool {
@@ -28,9 +28,10 @@ impl WorkerPool {
                     input_root.clone(),
                     output_dir.clone(),
                 )
-            }).collect();
+            })
+            .collect();
 
-        WorkerPool{workers}
+        WorkerPool { workers }
     }
 
     pub fn join(self) {
@@ -48,7 +49,7 @@ fn spawn_worker(
     input_root: PathBuf,
     output_dir: PathBuf,
 ) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move ||{
+    std::thread::spawn(move || {
         let mut detector = build_detector().expect("Failed to build detector");
 
         loop {
@@ -60,18 +61,18 @@ fn spawn_worker(
 
             match process_image(&path, &mut *detector, &input_root, &output_dir) {
                 Ok(result) => {
-                    let worker_result = WorkerResult{
+                    let worker_result = WorkerResult {
                         input_path: path,
-                        image: result
+                        image: result,
                     };
                     if result_sender.send(worker_result).is_err() {
                         // If the receiver has closed the channel, exit the loop
                         break;
                     }
-                },
+                }
                 Err(err) => {
                     eprintln!("Error processing '{}': {err}", path.display());
-                },
+                }
             }
         }
     })

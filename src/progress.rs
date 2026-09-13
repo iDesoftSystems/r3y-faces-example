@@ -1,5 +1,5 @@
-use indicatif::{ProgressBar, ProgressStyle};
 use crate::worker::WorkerResult;
+use indicatif::{ProgressBar, ProgressStyle};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ProgressSummary {
@@ -10,20 +10,19 @@ pub struct ProgressSummary {
 
 pub enum ProgressEvent {
     /// the scan has completed, and we have the total number of images
-    ScanCompleted {total: usize},
+    ScanCompleted { total: usize },
 
     /// an image has been processed, and we have the result
-    ImageProcessed(WorkerResult)
+    ImageProcessed(WorkerResult),
 }
 
-pub async fn run(
-    mut events: tokio::sync::mpsc::Receiver<ProgressEvent>
-) -> ProgressSummary {
+pub async fn run(mut events: tokio::sync::mpsc::Receiver<ProgressEvent>) -> ProgressSummary {
     let bar = ProgressBar::new(0);
     bar.set_style(
         ProgressStyle::with_template(
-            "{spinner:.green} {bar:32.cyan/blue} {pos}/{len} [{elapsed_precise}] {msg}"
-        ).expect("invalid progress template")
+            "{spinner:.green} {bar:32.cyan/blue} {pos}/{len} [{elapsed_precise}] {msg}",
+        )
+        .expect("invalid progress template"),
     );
     bar.enable_steady_tick(std::time::Duration::from_millis(100));
 
@@ -33,7 +32,9 @@ pub async fn run(
 
     while let Some(event) = events.recv().await {
         match event {
-            ProgressEvent::ScanCompleted { total: total_scanned } => {
+            ProgressEvent::ScanCompleted {
+                total: total_scanned,
+            } => {
                 total = total_scanned;
 
                 bar.set_length(total as u64);
@@ -59,6 +60,6 @@ pub async fn run(
     ProgressSummary {
         processed,
         total,
-        faces_found
+        faces_found,
     }
 }

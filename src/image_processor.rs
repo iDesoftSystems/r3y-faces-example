@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
 use imageproc::drawing::draw_hollow_rect_mut;
 use imageproc::rect::Rect;
 use rustface::{Detector, ImageData};
+use std::path::{Path, PathBuf};
 
 /// Detected face `(x, y, width, height)` in pixels.
 pub type FaceRect = (i32, i32, u32, u32);
@@ -47,22 +47,34 @@ fn detect_faces(image: &image::DynamicImage, detector: &mut dyn Detector) -> Vec
         .collect()
 }
 
-fn build_output_path(path: &Path, input_root: &Path, output_root: &Path) -> Result<PathBuf, String> {
+fn build_output_path(
+    path: &Path,
+    input_root: &Path,
+    output_root: &Path,
+) -> Result<PathBuf, String> {
     let relative = path.strip_prefix(input_root).map_err(|_| {
-        format!("'{}' is not under '{}'", path.display(), input_root.display())
+        format!(
+            "'{}' is not under '{}'",
+            path.display(),
+            input_root.display()
+        )
     })?;
 
     Ok(output_root.join(relative))
 }
 
-fn save_annotated_image(image: &image::DynamicImage, faces: &[FaceRect], output_path: &Path) -> Result<(), String> {
+fn save_annotated_image(
+    image: &image::DynamicImage,
+    faces: &[FaceRect],
+    output_path: &Path,
+) -> Result<(), String> {
     let mut canvas = image.to_rgb8();
 
     for &(x, y, width, height) in faces {
         draw_hollow_rect_mut(
             &mut canvas,
             Rect::at(x, y).of_size(width, height),
-            image::Rgb([0, 255, 0])
+            image::Rgb([0, 255, 0]),
         );
     }
 
@@ -71,7 +83,7 @@ fn save_annotated_image(image: &image::DynamicImage, faces: &[FaceRect], output_
             .map_err(|e| format!("cannot create dir '{}': {e}", parent.display()))?;
     }
 
-    canvas.save(output_path).map_err(|e| {
-        format!("cannot save '{}': {e}", output_path.display())
-    })
+    canvas
+        .save(output_path)
+        .map_err(|e| format!("cannot save '{}': {e}", output_path.display()))
 }

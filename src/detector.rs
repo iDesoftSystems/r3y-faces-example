@@ -1,5 +1,5 @@
+use rustface::{Detector, create_detector_with_model, read_model};
 use std::io::Cursor;
-use rustface::{read_model, Detector, create_detector_with_model};
 
 /// seeta Face embedded model
 const MODEL_BYTES: &[u8] = include_bytes!("../models/seeta_fd_frontal_v1.0.bin");
