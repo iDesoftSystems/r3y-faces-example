@@ -1,15 +1,17 @@
-use std::path::PathBuf;
-use std::sync::Arc;
+use crate::cli::Cli;
 use crate::progress::{ProgressEvent, ProgressSummary};
-use crate::{progress, scanner};
 use crate::scanner::ScanMessage;
 use crate::worker::{WorkerPool, WorkerResult};
+use crate::{progress, scanner};
+use std::path::PathBuf;
+use std::sync::Arc;
 
-pub async fn run() -> Result<ProgressSummary, String> {
+pub async fn run(args: Cli) -> Result<ProgressSummary, String> {
+    validate_and_prepare(&args)?;
 
-    let input_dir: PathBuf = PathBuf::from("./data/raw");
-    let output_dir: PathBuf = PathBuf::from("./data/processed");
-    let worker_count = 4;
+    let input_dir: PathBuf = args.input_dir.clone();
+    let output_dir: PathBuf = args.output_dir.clone();
+    let worker_count = args.worker_count();
 
     let (scan_tx, scan_rx) = tokio::sync::mpsc::channel::<ScanMessage>(scanner::BATCH_CAPACITY);
     let (job_tx, job_rx) = std::sync::mpsc::channel::<PathBuf>();
@@ -21,7 +23,7 @@ pub async fn run() -> Result<ProgressSummary, String> {
         job_receiver,
         results_tx,
         input_dir.clone(),
-        output_dir.clone()
+        output_dir.clone(),
     );
 
     let (progress_tx, progress_rx) = tokio::sync::mpsc::channel::<ProgressEvent>(256);
@@ -51,7 +53,7 @@ pub async fn run() -> Result<ProgressSummary, String> {
 fn spawn_scanner_bridge(
     mut scan_rx: tokio::sync::mpsc::Receiver<ScanMessage>,
     job_tx: std::sync::mpsc::Sender<PathBuf>,
-    progress_tx: tokio::sync::mpsc::Sender<ProgressEvent>
+    progress_tx: tokio::sync::mpsc::Sender<ProgressEvent>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         while let Some(message) = scan_rx.recv().await {
@@ -61,7 +63,7 @@ fn spawn_scanner_bridge(
                 }
                 ScanMessage::Done { total } => {
                     progress_tx
-                        .send(ProgressEvent::ScanCompleted {total})
+                        .send(ProgressEvent::ScanCompleted { total })
                         .await
                         .ok();
                 }
@@ -72,15 +74,27 @@ fn spawn_scanner_bridge(
 
 fn spawn_results_bridge(
     results_rx: std::sync::mpsc::Receiver<WorkerResult>,
-    progress_tx: tokio::sync::mpsc::Sender<ProgressEvent>
+    progress_tx: tokio::sync::mpsc::Sender<ProgressEvent>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         while let Ok(result) = results_rx.recv() {
             if progress_tx
                 .blocking_send(ProgressEvent::ImageProcessed(result))
-                .is_err() {
+                .is_err()
+            {
                 break;
             }
         }
+    })
+}
+
+fn validate_and_prepare(args: &Cli) -> Result<(), String> {
+    args.validate()?;
+
+    std::fs::create_dir_all(&args.output_dir).map_err(|error| {
+        format!(
+            "cannot create output directory '{}': {error}",
+            args.output_dir.display()
+        )
     })
 }
