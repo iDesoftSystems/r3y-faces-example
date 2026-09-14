@@ -7,6 +7,20 @@ This repository contains a final example project that applies the concepts cover
 - Italiano: [Guarda la Playlist su YouTube](https://www.youtube.com/playlist?list=PLSLcKcqBWfjJ0fWnUSIKK66U7OapnAXls)
 - Español: [Mira la Playlist en YouTube](https://www.youtube.com/playlist?list=PL8aBwUBHv2TgGw9pG_Td3atFeKJQGTXNg)
 
+## Architecture Diagrams
+
+### Component Overview
+
+![Component Diagram](docs/diagrams/r3y-faces-example-components.svg)
+
+### Image Processing Sequence
+
+![Sequence Diagram](docs/diagrams/r3y-faces-example-image-processing-sequence.svg)
+
+### Concurrency Model
+
+![Concurrency Diagram](docs/diagrams/r3y-faces-example-concurrency.svg)
+
 ## Curriculum Overview
 
 - Module 1: Safe Multi-threading - Synchronization mechanisms and secure thread management
